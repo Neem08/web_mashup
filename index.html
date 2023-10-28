@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Book Recommendation Mashup</title>
+    <style>
+        /* Style for the entire page */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+
+        /* Style for the input bar */
+        #userInput {
+            width: 50%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #0078d4;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        /* Style for the "Recommend Book" button */
+        #recommendButton {
+            padding: 10px 20px;
+            background-color: #0078d4;
+            color: #fff;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        #recommendButton:hover {
+            background-color: #0056b3;
+        }
+
+        /* Style for individual product items */
+        .product {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            text-align: center;
+            width: 250px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Add a subtle box shadow for a card-like effect */
+            background-color: #f9f9f9; /* Background color for the product card */
+        }
+
+        .product img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd; /* Add a border to the image */
+            border-radius: 5px;
+        }
+
+        .product h3 {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
+        .product p {
+            font-size: 14px;
+            color: #444;
+            margin: 5px 0;
+        }
+
+        .product a {
+            text-decoration: none;
+            background-color: #0078d4;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .product a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Book Recommendation</h1>
+    <input type="text" id="userInput" placeholder="Enter your preference">
+    <button id="recommendButton">Recommend Book</button>
+    <div id="recommendedBook"></div>
+    <div id="amazonResults">
+        <h2>Amazon Search Results for <span id="recommendedBookTitle">Recommended Book Title</span></h2>
+        <div class="product-list">
+            <!-- Product items will be added dynamically here -->
+        </div>
+    </div>
+
+    <script>
+        const userInput = document.getElementById('userInput');
+        const recommendButton = document.getElementById('recommendButton');
+        const recommendedBook = document.getElementById('recommendedBook');
+        const amazonResults = document.getElementById('amazonResults');
+
+        const amazonAPI = {
+            method: 'GET',
+            url: 'https://real-time-amazon-data.p.rapidapi.com/search',
+            headers: {
+                'X-RapidAPI-Key': '80d1ea0625msh60a2b6753b661fcp1b2f05jsn48792433dbda',
+                'X-RapidAPI-Host': 'real-time-amazon-data.p.rapidapi.com'
+            },
+            params: {
+                page: '1',
+                country: 'US',
+                category_id: 'aps'
+            }
+        };
+
+        recommendButton.addEventListener('click', () => {
+            // Get user input
+            const userPreference = userInput.value;
+
+            // Make a request to the Hapi Books API with user input
+            fetch(`https://hapi-books.p.rapidapi.com/nominees/${userPreference}/2020`, {
+                method: 'GET',
+                headers: {
+                    'X-RapidAPI-Key': '919ad1b4efmsh5c64063fdf57b2ap1ecd82jsn8b07ec302f85',
+                    'X-RapidAPI-Host': 'hapi-books.p.rapidapi.com'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const recommendedBookTitle = data[0].name;
+
+                        // Update the Amazon API query with the recommended book title
+                        amazonAPI.url = `https://real-time-amazon-data.p.rapidapi.com/search?query=${recommendedBookTitle}&page=${amazonAPI.params.page}&country=${amazonAPI.params.country}&category_id=${amazonAPI.params.category_id}`;
+
+                        // Display the recommended book
+                        recommendedBook.innerHTML = `Recommended Book: ${recommendedBookTitle}`;
+
+                        // Make a request to the Amazon API with the recommended book title as the qu=ery
+                        fetch(amazonAPI.url, { method: amazonAPI.method, headers: amazonAPI.headers })
+                            .then(response => response.json())
+                            .then(data => {
+                                // Display the Amazon search results
+                                amazonResults.innerHTML = `<h2>Amazon Search Results for ${recommendedBookTitle}</h2>`;
+                                // Loop through the products and display information
+                                console.log(data.data.products)
+                                data.data.products.forEach(product => {
+                                    const productInfo = `
+                                        <div class="product">
+                                            <img src="${product.product_photo}" alt="Book Cover">
+                                            <h3>${product.product_title}</h3>
+                                            <p>Price: ${product.product_price}</p>
+                                            <p>Rating: ${product.product_star_rating}</p>
+                                            <p><a href="${product.product_url}" target="_blank">Amazon Link</a></p>
+                                        </div>
+                                    `;
+                                    amazonResults.innerHTML += productInfo;
+                                });
+                            })
+                            .catch(error => {
+                                console.error(error);
+                            });
+                    } else {
+                        console.error('No recommended books found in the response.');
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        });
+    </script>
+</body>
+</html>
+
+
